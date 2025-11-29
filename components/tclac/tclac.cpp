@@ -20,7 +20,7 @@ ClimateTraits tclacClimate::traits() {
 	//traits.set_supports_current_temperature(true);
 	//traits.set_supports_two_point_target_temperature(false);
 
-	traits.add_feature_flags(esphome::climate::CLIMATE_SUPPORTS_CURRENT_TEMPERATURE);
+	traits.add_feature_flags(climate::CLIMATE_SUPPORTS_CURRENT_TEMPERATURE);
 
 	traits.set_supported_modes(this->supported_modes_);
 	traits.set_supported_presets(this->supported_presets_);
