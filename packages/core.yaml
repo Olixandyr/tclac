@@ -104,7 +104,7 @@ uart:
   baud_rate: 9600
   data_bits: 8
   parity: EVEN
-  stop_bits: 1
+  stop_bits: 2
   rx_pin: 
     number: ${uart_rx}
     inverted: true
