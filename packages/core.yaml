@@ -110,7 +110,7 @@ uart:
     inverted: true
   tx_pin: 
     number: ${uart_tx}
-    inverted: true
+    #inverted: true
   
 api:
   encryption:
