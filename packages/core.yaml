@@ -106,7 +106,7 @@ uart:
   stop_bits: 2
   rx_pin: ${uart_rx}
   tx_pin: ${uart_tx}
- 
+  inverted: true
 api:
   encryption:
     key: "${api_key}"
