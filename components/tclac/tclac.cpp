@@ -158,13 +158,24 @@ void tclacClimate::loop()  {
 }
 */
 void tclacClimate::update() {
-	tclacClimate::dataShow(1,1);
-	this->esphome::uart::UARTDevice::write_array(poll, sizeof(poll));
-	// после опроса кондиционер начнёт отвечать — командные кадры подождут
-	this->poll_sent_ms_ = millis();
-	//auto raw = tclacClimate::getHex(poll, sizeof(poll));
-	ESP_LOGD("TCL", "chek status sended");
-	tclacClimate::dataShow(1,0);
+    tclacClimate::dataShow(1, 1);
+    
+    // Формируем и выводим в лог то, что отправляем
+    std::string tx_dump = "";
+    for (size_t i = 0; i < sizeof(poll); i++) {
+        char buf[4];
+        sprintf(buf, "%02X ", poll[i]);
+        tx_dump += buf;
+    }
+    ESP_LOGD("TCL_TX", "Sending poll: %s", tx_dump.c_str());
+
+    this->esphome::uart::UARTDevice::write_array(poll, sizeof(poll));
+    
+    // после опроса кондиционер начнёт отвечать — командные кадры подождут
+    this->poll_sent_ms_ = millis();
+    
+    ESP_LOGD("TCL", "chek status sended");
+    tclacClimate::dataShow(1, 0);
 }
 
 void tclacClimate::readData() {
