@@ -103,7 +103,7 @@ uart:
   id: ${device_name}_uart
   baud_rate: 9600
   data_bits: 8
-  parity: NONE
+  parity: EVEN
   stop_bits: 1
   rx_pin: 
     number: ${uart_rx}
