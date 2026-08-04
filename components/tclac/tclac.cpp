@@ -58,7 +58,22 @@ void tclacClimate::setup() {
 	this->tx_led_pin_->digital_write(false);
 #endif
 }
-
+void tclacClimate::loop() {
+    // Просто выводим всё, что удается вычитать из UART, чтобы увидеть реальную картину байтов
+    static uint32_t last_print = 0;
+    if (esphome::uart::UARTDevice::available() > 0 && millis() - last_print > 1000) {
+        std::string hex_dump = "";
+        while (esphome::uart::UARTDevice::available() > 0 && hex_dump.length() < 120) {
+            uint8_t b = esphome::uart::UARTDevice::read();
+            char buf[4];
+            sprintf(buf, "%02X ", b);
+            hex_dump += buf;
+        }
+        ESP_LOGD("TCL_RAW", "RX Dump: %s", hex_dump.c_str());
+        last_print = millis();
+    }
+}
+/*
 void tclacClimate::loop()  {
 	// Если в буфере UART что-то есть, то читаем это что-то
 	if (esphome::uart::UARTDevice::available() > 0) {
@@ -141,7 +156,7 @@ void tclacClimate::loop()  {
 		this->readData();
 	}
 }
-
+*/
 void tclacClimate::update() {
 	tclacClimate::dataShow(1,1);
 	this->esphome::uart::UARTDevice::write_array(poll, sizeof(poll));
