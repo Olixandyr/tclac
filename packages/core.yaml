@@ -99,15 +99,19 @@ esphome:
         }
 
 uart:
-- platform: esp8266_sw_uart
+
   id: ${device_name}_uart
   baud_rate: 9600
   data_bits: 8
   parity: EVEN
   stop_bits: 2
-  rx_pin: ${uart_rx}
-  tx_pin: ${uart_tx}
-  inverted: true
+  rx_pin: 
+    number: ${uart_rx}
+    inverted: true
+  tx_pin: 
+    number: ${uart_tx}
+    inverted: true
+  
 api:
   encryption:
     key: "${api_key}"
