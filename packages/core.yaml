@@ -99,6 +99,7 @@ esphome:
         }
 
 uart:
+- platform: esp8266_sw_uart
   id: ${device_name}_uart
   baud_rate: 9600
   data_bits: 8
