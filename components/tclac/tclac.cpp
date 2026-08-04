@@ -69,6 +69,8 @@ void tclacClimate::loop()  {
 		// Если принятый байт- не заголовок (0xBB), то просто покидаем цикл
 		if (dataRX[0] != 0xBB) {
 			ESP_LOGD("TCL", "Wrong byte");
+			auto raw = getHex(dataRX, 5);
+			ESP_LOGD("TCL", "first 5 byte : %s ", raw.c_str());
 			dataShow(0,0);
 			return;
 		}
