@@ -107,10 +107,10 @@ uart:
   stop_bits: 2
   rx_pin: 
     number: ${uart_rx}
-    #inverted: true
+    inverted: true
   tx_pin: 
     number: ${uart_tx}
-    #inverted: true
+    inverted: false
   
 api:
   encryption:
