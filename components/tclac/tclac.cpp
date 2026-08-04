@@ -65,34 +65,33 @@ void tclacClimate::loop()  {
 		// линия занята приёмом — отправку командных кадров придержим
 		this->last_rx_ms_ = millis();
 		dataShow(0, true);
+		
 		dataRX[0] = esphome::uart::UARTDevice::read();
-		// Если принятый байт- не заголовок (0xBB), то просто покидаем цикл
+		
+		// Если принятый байт не заголовок (0xBB)
 		if (dataRX[0] != 0xBB) {
-			ESP_LOGD("TCL", "Wrong byte");
-			auto raw = getHex(dataRX, 5);
-			ESP_LOGD("TCL", "first 5 byte : %s ", raw.c_str());
+			// Читаем всё, что еще есть в буфере на данный момент, чтобы собрать пакет целиком или сбросить мусор
+			std::vector<uint8_t> trash;
+			trash.push_back(dataRX[0]);
+			while (esphome::uart::UARTDevice::available() > 0) {
+				trash.push_back(esphome::uart::UARTDevice::read());
+			}
+			
+			// Выводим весь ошибочный хвост в читаемом HEX-виде
+			std::string hex_str = format_hex(trash);
+			ESP_LOGD("TCL", "Wrong header! Got %d bytes starting with 0x%02X -> [%s]", trash.size(), dataRX[0], hex_str.c_str());
+			
 			dataShow(0,0);
 			return;
 		}
+
 		// А вот если совпал заголовок (0xBB), то начинаем чтение по цепочке еще 4 байт
-		// Иногда, для некоторых кондиционеров все же нужно добавить delay(5) между пакетами. Зачем- ХЗ, но так надо. Но не всегда. Хотя иногда- да. Но не каждый раз. Изредка. Случается.
-		// delay(5);
 		dataRX[1] = esphome::uart::UARTDevice::read();
-		// delay(5);
 		dataRX[2] = esphome::uart::UARTDevice::read();
-		// delay(5);
 		dataRX[3] = esphome::uart::UARTDevice::read();
-		// delay(5);
 		dataRX[4] = esphome::uart::UARTDevice::read();
 
-		//auto raw = getHex(dataRX, 5);
-		//ESP_LOGD("TCL", "first 5 byte : %s ", raw.c_str());
-
-		// ЗАЩИТА ОТ ПЕРЕПОЛНЕНИЯ: пятый байт — длина полезной части, дальше
-		// читается dataRX[4]+1 байт в dataRX+5. Легитимны только три длины
-		// кадра (0x37=61, 0x3b=65, 0x3e=68 байт всего). На шумной линии
-		// read() может вернуть -1 (0xFF) или прийти мусор — тогда dataRX[4]+6
-		// вышло бы за пределы dataRX[68]. Отбраковываем такой кадр.
+		// ЗАЩИТА ОТ ПЕРЕПОЛНЕНИЯ: пятый байт — длина полезной части
 		if (dataRX[4] != 0x37 && dataRX[4] != 0x3b && dataRX[4] != 0x3e) {
 			ESP_LOGW("TCL", "Bad frame length 0x%02X, dropped", dataRX[4]);
 			while (esphome::uart::UARTDevice::available() > 0) esphome::uart::UARTDevice::read();
@@ -100,9 +99,7 @@ void tclacClimate::loop()  {
 			return;
 		}
 
-		// Из первых 5 байт нам нужен пятый- он содержит длину сообщения.
-		// read_array вернёт false при таймауте (кадр оборвался на полпути) —
-		// тогда в буфере мусор из прошлого кадра, разбирать его нельзя.
+		// Читаем оставшуюся часть массива
 		if (!esphome::uart::UARTDevice::read_array(dataRX+5, dataRX[4]+1)) {
 			ESP_LOGW("TCL", "Frame read timeout, dropped");
 			dataShow(0,0);
@@ -111,48 +108,34 @@ void tclacClimate::loop()  {
 
 		// Добываем контрольную сумму:
 		if (dataRX[4] == 0x3e){
-			// Для пакета данных длиной 68 байт
 			check = getChecksum(dataRX, 68);
 		} else if (dataRX[4] == 0x37){
-			// Для пакета данных длиной 61 байт
 			check = getChecksum(dataRX, 61);
 		} else {
-			// Для пакета данных длиной 65 байт
 			check = getChecksum(dataRX, 65);
 		}
-
-		//raw = getHex(dataRX, sizeof(dataRX));
-		//ESP_LOGD("TCL", "RX full : %s ", raw.c_str());
 		
 		// Проверяем контрольную сумму:
 		if (dataRX[4] == 0x3e){
-			// Для пакета данных длиной 68 байт
 			if (check != dataRX[67]) {
-				ESP_LOGD("TCL", "Invalid checksum %x", check);
+				ESP_LOGD("TCL", "Invalid checksum 0x%02X (expected 0x%02X)", check, dataRX[67]);
 				this->dataShow(0,0);
 				return;
-			} else {
-				//ESP_LOGD("TCL", "checksum OK %x", check);
 			}
 		} else if (dataRX[4] == 0x37){
 			if (check != dataRX[60]) {
-				// Для пакета данных длиной 61 байт
-				ESP_LOGD("TCL", "Invalid checksum %x", check);
+				ESP_LOGD("TCL", "Invalid checksum 0x%02X (expected 0x%02X)", check, dataRX[60]);
 				this->dataShow(0,0);
 				return;
-			} else {
-				//ESP_LOGD("TCL", "checksum OK %x", check);
 			}
 		} else {
 			if (check != dataRX[64]) {
-				// Для пакета данных длиной 65 байт
-				ESP_LOGD("TCL", "Invalid checksum %x", check);
+				ESP_LOGD("TCL", "Invalid checksum 0x%02X (expected 0x%02X)", check, dataRX[64]);
 				this->dataShow(0,0);
 				return;
-			} else {
-				//ESP_LOGD("TCL", "checksum OK %x", check);
 			}
 		}
+		
 		this->dataShow(0,0);
 		// Прочитав все из буфера приступаем к разбору данных
 		this->readData();
